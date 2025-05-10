@@ -13,24 +13,39 @@ public class PipesLayer implements Layer<Boolean> {
     private final int height;
     protected boolean[][] buffer;
 
-    private CityLayer city;
+    private GameState gameState;
 
-    public PipesLayer(@NotNull CityLayer city) {
-        this.width = city.getWidth();
-        this.height = city.getHeight();
+
+    public PipesLayer(@NotNull GameState gameState) {
+        this.gameState = gameState;
+
+        this.width = gameState.getMapWidth();
+        this.height = gameState.getMapHeight();
         buffer = new boolean[width][height];
-
-        this.city = city;
     }
 
-        @Override
-    public Boolean get(@Range(from = 0, to = Integer.MAX_VALUE) int x, @Range(from = 0, to = Integer.MAX_VALUE) int y) {
-        return buffer[x][y];
-    }
 
     @Override
-    public void set(@Range(from = 0, to = Integer.MAX_VALUE) int x, @Range(from = 0, to = Integer.MAX_VALUE) int y, Boolean value) {
-        buffer[x][y] = value;
+    public void draw(Graphics g, int xOffset, int yOffset, int width, int height) {
+
+        gameState.getCityMap().draw(g, xOffset, yOffset, width, height);
+
+        // Clamp to not draw out of bounds
+        int minX = Math.max(0, -xOffset);
+        int minY = Math.max(0, -yOffset);
+
+        int maxX = Math.min(width, this.width - xOffset);
+        int maxY = Math.min(height, this.height - yOffset);
+
+        for (int x = minX; x < maxX; x++) {
+            for (int y = minY; y < maxY; y++) {
+
+                if (get(x + xOffset, y + yOffset)) {
+                    g.setColor(Color.GRAY);
+                    g.fillRect(x * GameState.TILE_SIZE, y * GameState.TILE_SIZE, GameState.TILE_SIZE, GameState.TILE_SIZE);
+                }
+            }
+        }
     }
 
     @Override
@@ -46,34 +61,22 @@ public class PipesLayer implements Layer<Boolean> {
 
         double price = GameState.DEFAULT_PIPE_PRICE * (rectangle.width + 1) * (rectangle.height + 1);
 
-        if (GameState.getMoney() < price) return false;
+        if (gameState.getMoney() < price) return false;
 
         fill(rectangle, true);
-        GameState.setMoney(GameState.getMoney() - price);
+        gameState.setMoney(gameState.getMoney() - price);
         return true;
     }
 
+
     @Override
-    public void draw(Graphics g, int xOffset, int yOffset, int width, int height) {
+    public Boolean get(@Range(from = 0, to = Integer.MAX_VALUE) int x, @Range(from = 0, to = Integer.MAX_VALUE) int y) {
+        return buffer[x][y];
+    }
 
-        city.draw(g, xOffset, yOffset, width, height);
-
-        // Clamp to not draw out of bounds
-        int minX = Math.max(0, -xOffset);
-        int minY = Math.max(0, -yOffset);
-
-        int maxX = Math.min(width, this.width - xOffset);
-        int maxY = Math.min(height, this.height - yOffset);
-
-        for (int x = minX; x < maxX; x++) {
-            for (int y = minY; y < maxY; y++) {
-
-                if (get(x + xOffset, y + yOffset)){
-                    g.setColor(Color.GRAY);
-                    g.fillRect(x * GameState.TILE_SIZE, y * GameState.TILE_SIZE, GameState.TILE_SIZE, GameState.TILE_SIZE);
-                }
-            }
-        }
+    @Override
+    public void set(@Range(from = 0, to = Integer.MAX_VALUE) int x, @Range(from = 0, to = Integer.MAX_VALUE) int y, Boolean value) {
+        buffer[x][y] = value;
     }
 
     @Override
